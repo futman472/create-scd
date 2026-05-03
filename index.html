@@ -1,0 +1,247 @@
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>結婚準備チェック</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 0;
+  background: #f2f2f2;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  background: white;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.container {
+  padding: 10px;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+label {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+input[type="checkbox"] {
+  margin-right: 10px;
+  transform: scale(1.2);
+}
+
+input, textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+}
+
+.progress {
+  height: 8px;
+  background: #ddd;
+  border-radius: 5px;
+  margin-top: 5px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #4caf50;
+  width: 0%;
+  border-radius: 5px;
+}
+
+.fixed-buttons {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+}
+
+button {
+  flex: 1;
+  padding: 15px;
+  border: none;
+  font-size: 16px;
+}
+
+.pdf { background: #4caf50; color: white; }
+.share { background: #2196f3; color: white; }
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>結婚準備チェック</h1>
+  <div class="progress"><div class="progress-bar" id="bar"></div></div>
+</header>
+
+<div class="container">
+
+<div class="card">
+  <label>名前<input id="name"></label>
+  <label>入籍日<input type="date" id="date"></label>
+  <label>メモ<textarea id="memo"></textarea></label>
+</div>
+
+<div id="list"></div>
+
+</div>
+
+<div class="fixed-buttons">
+  <button class="share" onclick="share()">共有</button>
+  <button class="pdf" onclick="pdf()">PDF</button>
+</div>
+
+<script>
+const data = [
+["事前準備",[
+"結婚の意思確認","両家挨拶","顔合わせ","婚約指輪","資金計画","ライフプラン"
+]],
+["結婚準備",[
+"入籍日決定","婚姻届","証人依頼","式検討","式場予約","旅行計画"
+]],
+["生活",[
+"新居決定","引越し","家具家電","ネット契約","ライフライン手続き"
+]],
+["手続き",[
+"婚姻届提出","住民票","保険","年金","免許証"
+]],
+["名義変更",[
+"銀行","カード","携帯","保険","サブスク"
+]]
+];
+
+function render() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  data.forEach((sec, si) => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML += `<h3>${sec[0]}</h3>`;
+
+    sec[1].forEach((item, ii) => {
+      const id = `c_${si}_${ii}`;
+      const checked = localStorage.getItem(id) === "1";
+
+      div.innerHTML += `
+        <label>
+          <input type="checkbox" id="${id}" ${checked?"checked":""}
+          onchange="save('${id}')">
+          ${item}
+        </label>`;
+    });
+
+    list.appendChild(div);
+  });
+
+  loadInputs();
+  updateProgress();
+}
+
+function save(id) {
+  const cb = document.getElementById(id);
+  localStorage.setItem(id, cb.checked ? "1" : "0");
+  updateProgress();
+}
+
+function loadInputs() {
+  ["name","date","memo"].forEach(id=>{
+    const el = document.getElementById(id);
+    el.value = localStorage.getItem(id) || "";
+    el.oninput = ()=>localStorage.setItem(id, el.value);
+  });
+}
+
+function updateProgress() {
+  const all = document.querySelectorAll("input[type=checkbox]");
+  const done = [...all].filter(c=>c.checked).length;
+  const percent = all.length ? (done/all.length)*100 : 0;
+  document.getElementById("bar").style.width = percent+"%";
+}
+
+function pdf() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 10;
+
+  doc.text("結婚準備チェック",10,y); y+=10;
+
+  data.forEach((sec,si)=>{
+    doc.text(sec[0],10,y); y+=8;
+
+    sec[1].forEach((item,ii)=>{
+      const id=`c_${si}_${ii}`;
+      const checked = localStorage.getItem(id)==="1";
+      doc.text((checked?"✔ ":"□ ")+item,10,y);
+      y+=6;
+      if(y>280){doc.addPage();y=10;}
+    });
+    y+=5;
+  });
+
+  doc.save("wedding.pdf");
+}
+
+function share() {
+  const state = {};
+
+  document.querySelectorAll("input[type=checkbox]").forEach(cb=>{
+    state[cb.id] = cb.checked ? 1 : 0;
+  });
+
+  state.name = document.getElementById("name").value;
+  state.date = document.getElementById("date").value;
+  state.memo = document.getElementById("memo").value;
+
+  const url = location.origin + location.pathname + 
+    "?data=" + btoa(JSON.stringify(state));
+
+  prompt("このURLを共有👇", url);
+}
+
+function loadShare() {
+  const params = new URLSearchParams(location.search);
+  if(!params.get("data")) return;
+
+  const data = JSON.parse(atob(params.get("data")));
+
+  Object.keys(data).forEach(k=>{
+    if(k.startsWith("c_")){
+      localStorage.setItem(k, data[k]);
+    } else {
+      localStorage.setItem(k, data[k]);
+    }
+  });
+}
+
+loadShare();
+render();
+</script>
+
+</body>
+</html>
+```
