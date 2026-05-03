@@ -109,10 +109,9 @@ textarea{
 }
 
 .sheet{
-  width:100%;
-  max-width:520px;
+  width:80%;
   background:#fff;
-  padding:16px;
+  padding:30px;
   border-radius:16px 16px 0 0;
   max-height:90vh;
   overflow:auto;
@@ -189,6 +188,7 @@ textarea{
   opacity:0;
   transition:0.25s;
   pointer-events:none;
+  z-index:99999;
 }
 
 #toast.show{
@@ -236,7 +236,7 @@ textarea{
   bottom:0;
   left:0;
   right:0;
-  height:35px;
+  height:45px;
   background:#fff;
   border-top:1px solid #eee;
   display:flex;
@@ -276,11 +276,10 @@ textarea{
   left:50%;
   transform:translateX(-50%);
   bottom:0;
-  height:6px;
+  height:4px;
   width:0%;
   background:#111;
   border-radius:3px 3px 0 0;
-  transition:0.25s;
 }
 
 .navBtn.active::after{
