@@ -57,7 +57,12 @@ header{
   font-size:12px;
 }
 
-.filters button.active{
+.state-filters button.active{
+  background:#111;
+  color:#fff;
+}
+
+.step-filters button.active{
   background:#111;
   color:#fff;
 }
@@ -97,6 +102,12 @@ textarea{
   font-size:16px;
   -webkit-appearance:none;
   appearance:none;
+}
+
+input[type="date"],
+input[type="time"]{
+  width:40%;
+  max-width:40%;
 }
 
 .done{
@@ -311,14 +322,24 @@ textarea{
 
   <div id="tab-list">
 
-    <div class="filters">
-      <button onclick="setFilter('all', this)">すべて</button>
-      <button onclick="setFilter('todo', this)">未完了</button>
-      <button onclick="setFilter('done', this)">完了</button>
-      <button onclick="setFilter('today', this)">今日</button>
-      <button onclick="setFilter('week', this)">今週</button>
-      <button onclick="setFilter('month', this)">今月</button>
-    </div>
+  <!-- 状態 -->
+  <div class="filters state-filters">
+    <button class="active" onclick="setFilter('all', this)">すべて</button>
+    <button onclick="setFilter('todo', this)">未完了</button>
+    <button onclick="setFilter('done', this)">完了</button>
+  </div>
+
+  <!-- STEP -->
+  <div class="filters step-filters">
+    <button class="active" onclick="setCategory('all', this)">すべて</button>
+    <button onclick="setCategory('STEP1 意思決定', this)">STEP1</button>
+    <button onclick="setCategory('STEP2 家族・関係調整', this)">STEP2</button>
+    <button onclick="setCategory('STEP3 法的手続き', this)">STEP3</button>
+    <button onclick="setCategory('STEP4 お金・契約', this)">STEP4</button>
+    <button onclick="setCategory('STEP5 生活準備', this)">STEP5</button>
+    <button onclick="setCategory('STEP6 式準備', this)">STEP6</button>
+    <button onclick="setCategory('STEP7 仕上げ', this)">STEP7</button>
+  </div>
 
     <div id="list"></div>
 
@@ -438,6 +459,7 @@ let tasks=[];
 let selectedSub=null;
 let editId=null;
 let currentFilter="all";
+let categoryFilter = "all";
 
 /* ===== toast ===== */
 function showToast(msg){
@@ -473,9 +495,9 @@ function share(){
 
 /* ===== filter ===== */
 function setFilter(f, el){
-  currentFilter=f;
+  currentFilter = f;
 
-  document.querySelectorAll(".filters button")
+  document.querySelectorAll(".state-filters button")
     .forEach(b=>b.classList.remove("active"));
 
   el.classList.add("active");
@@ -541,7 +563,10 @@ selectedSub=null;
 
 /* ===== save ===== */
 function saveTask(){
-if(!selectedSub)return;
+if(!selectedSub){
+  showToast("カテゴリは必須です");
+  return;
+}
 
 let data={
 id:editId||Math.random().toString(36).slice(2),
@@ -628,10 +653,26 @@ function renderProgress(){
 function render(){
 list.innerHTML="";
 
-let filtered=tasks.filter(t=>{
-if(currentFilter==="todo")return !t.done;
-if(currentFilter==="done")return t.done;
-return true;
+let filtered = tasks.filter(t => {
+
+  // 状態フィルタ
+  if(currentFilter==="todo" && t.done) return false;
+  if(currentFilter==="done" && !t.done) return false;
+
+  // カテゴリフィルタ
+  if(categoryFilter !== "all"){
+    let match = false;
+
+    for(let k in CATEGORY){
+      if(k === categoryFilter && CATEGORY[k].items.includes(t.sub)){
+        match = true;
+      }
+    }
+
+    if(!match) return false;
+  }
+
+  return true;
 });
 
 filtered.forEach(t=>{
@@ -683,6 +724,17 @@ function switchTab(tab, el){
 
   document.getElementById("tab-progress").style.display =
     tab==="progress" ? "block" : "none";
+}
+
+function setCategory(cat, el){
+  categoryFilter = cat;
+
+  document.querySelectorAll(".step-filters button")
+    .forEach(b=>b.classList.remove("active"));
+
+  el.classList.add("active");
+
+  render();
 }
 
 render();
